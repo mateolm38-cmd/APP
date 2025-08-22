@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notas de Mantenimiento</title>
+    <!-- Tailwind CSS para un diseño limpio y responsivo -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+        }
+        .container {
+            max-width: 800px;
+        }
+        /* Estilos para el área de firma */
+        #signature-pad, #fullscreen-signature-pad {
+            touch-action: none;
+            cursor: crosshair;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+        }
+        /* Estilos para el modal de firma en pantalla completa */
+        .modal {
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .modal-content {
+            background-color: white;
+        }
+        /* Estilos para los botones de toggle */
+        .pill-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .pill-button.active {
+            background-color: #3b82f6;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .pill-button:not(.active) {
+            background-color: #e5e7eb;
+            color: #4b5563;
+        }
+        .pill-button:hover:not(.active) {
+            background-color: #d1d5db;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+    <!-- Contenedor Principal de la Aplicación -->
+    <div id="app-container" class="container mx-auto p-4 sm:p-6 bg-white rounded-xl shadow-lg">
+
+        <!-- Título de la Aplicación -->
+        <div class="flex flex-col items-center justify-center text-center mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-800 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <path d="M14 2v6h6"></path>
+                <path d="M16 13H8"></path>
+                <path d="M16 17H8"></path>
+                <path d="M10 9H8"></path>
+            </svg>
+            <h1 class="text-3xl font-bold text-gray-800">Notas de Mantenimiento</h1>
+        </div>
+
+        <!-- Selección de Entidad con Botones de Píldora -->
+        <div class="mb-6 text-center">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Selecciona la Entidad</label>
+            <div class="inline-flex rounded-full bg-gray-200 p-1 space-x-1">
+                <button type="button" id="ese-btn" data-entidad="E.S.E. SaludYa de Yacuanquer" class="pill-button px-6 py-2 rounded-full font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active">E.S.E.</button>
+                <button type="button" id="alcaldia-btn" data-entidad="Alcaldía de Yacuanquer" class="pill-button px-6 py-2 rounded-full font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">Alcaldía</button>
+            </div>
+        </div>
+
+        <!-- Formulario de Reporte -->
+        <form id="report-form" class="space-y-6">
+
+            <!-- Sección Detalles de la Nota -->
+            <div class="space-y-4">
+                <h2 class="text-xl font-bold text-gray-800">Detalles de la Nota</h2>
+                
+                <!-- Número de Nota -->
+                <div>
+                    <label for="nota-numero" class="block text-sm font-medium text-gray-700 mb-1">Número de Nota:</label>
+                    <input type="text" id="nota-numero" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out" placeholder="Número de referencia del reporte">
+                </div>
+
+                <!-- Fecha y Hora de Inicio -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="fecha" class="block text-sm font-medium text-gray-700 mb-1">Fecha:</label>
+                        <input type="date" id="fecha" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out">
+                    </div>
+                    <div>
+                        <label for="hora-inicio" class="block text-sm font-medium text-gray-700 mb-1">Hora de Inicio:</label>
+                        <input type="time" id="hora-inicio" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out">
+                    </div>
+                </div>
+
+                <!-- Realizado por -->
+                <div>
+                    <label for="realizado-por" class="block text-sm font-medium text-gray-700 mb-1">Realizado por:</label>
+                    <input type="text" id="realizado-por" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out" placeholder="Nombre completo">
+                </div>
+                
+                <!-- Área donde se realizó la actividad -->
+                <div>
+                    <label for="area-actividad" class="block text-sm font-medium text-gray-700 mb-1">Área donde se realizó la actividad:</label>
+                    <input type="text" id="area-actividad" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out" placeholder="Ej: Oficina de contabilidad">
+                </div>
+
+                <!-- Actividad Realizada -->
+                <div>
+                    <label for="actividad-realizada" class="block text-sm font-medium text-gray-700 mb-1">Actividad Realizada:</label>
+                    <textarea id="actividad-realizada" rows="4" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out" placeholder="Detalle las tareas realizadas..."></textarea>
+                </div>
+                
+                <!-- Observación -->
+                <div>
+                    <label for="observacion" class="block text-sm font-medium text-gray-700 mb-1">Observación:</label>
+                    <textarea id="observacion" rows="2" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out" placeholder="Comentarios adicionales..."></textarea>
+                </div>
+
+                <!-- Conclusión -->
+                <div>
+                    <label for="conclusion" class="block text-sm font-medium text-gray-700 mb-1">Conclusión:</label>
+                    <textarea id="conclusion" rows="2" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out" placeholder="Resumen de la actividad..."></textarea>
+                </div>
+            </div>
+
+            <!-- Sección de Fotos de Evidencia -->
+            <div class="mt-8 space-y-4">
+                <h2 class="text-xl font-bold text-gray-800">Fotos de Evidencia</h2>
+                <input type="file" id="fotos" accept="image/*" multiple class="hidden" />
+                <div id="photo-container" class="space-y-4">
+                    <!-- Foto 1 -->
+                    <div id="foto-container-1" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center space-y-2 relative group">
+                        <img id="photo-preview-1" class="hidden w-full h-auto max-h-48 object-contain rounded-lg mx-auto" alt="Vista previa de la foto 1">
+                        <span id="photo-placeholder-1" class="text-gray-400">No hay foto</span>
+                        <button type="button" class="w-full px-4 py-2 bg-blue-50 text-blue-700 font-semibold rounded-lg hover:bg-blue-100 transition duration-150 ease-in-out add-photo-btn">Añadir Foto 1</button>
+                    </div>
+                    <!-- Foto 2 -->
+                    <div id="foto-container-2" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center space-y-2 relative group">
+                        <img id="photo-preview-2" class="hidden w-full h-auto max-h-48 object-contain rounded-lg mx-auto" alt="Vista previa de la foto 2">
+                        <span id="photo-placeholder-2" class="text-gray-400">No hay foto</span>
+                        <button type="button" class="w-full px-4 py-2 bg-blue-50 text-blue-700 font-semibold rounded-lg hover:bg-blue-100 transition duration-150 ease-in-out add-photo-btn">Añadir Foto 2</button>
+                    </div>
+                    <!-- Foto 3 -->
+                    <div id="foto-container-3" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center space-y-2 relative group">
+                        <img id="photo-preview-3" class="hidden w-full h-auto max-h-48 object-contain rounded-lg mx-auto" alt="Vista previa de la foto 3">
+                        <span id="photo-placeholder-3" class="text-gray-400">No hay foto</span>
+                        <button type="button" class="w-full px-4 py-2 bg-blue-50 text-blue-700 font-semibold rounded-lg hover:bg-blue-100 transition duration-150 ease-in-out add-photo-btn">Añadir Foto 3</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sección Detalles del Cliente -->
+            <div class="mt-8 space-y-4">
+                <h2 class="text-xl font-bold text-gray-800">Detalles del Cliente</h2>
+                <!-- Participantes -->
+                <div>
+                    <label for="participantes" class="block text-sm font-medium text-gray-700 mb-1">Participantes:</label>
+                    <input type="text" id="participantes" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out" placeholder="Nombres de los asistentes">
+                </div>
+            </div>
+
+            <!-- Sección de Firma -->
+            <div class="mt-8 space-y-4">
+                <h2 class="text-xl font-bold text-gray-800">Firma</h2>
+                <!-- Nombre de quién firma -->
+                <div>
+                    <label for="nombre-firma" class="block text-sm font-medium text-gray-700 mb-1">Nombre de quién firma:</label>
+                    <input type="text" id="nombre-firma" class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out" placeholder="Nombre completo">
+                </div>
+                <!-- Área de Firma -->
+                <div>
+                    <canvas id="signature-pad" class="w-full h-48 bg-gray-50"></canvas>
+                    <div class="flex justify-between mt-2">
+                        <button type="button" id="clear-signature" class="text-sm text-red-500 hover:underline">Limpiar Firma</button>
+                        <button type="button" id="fullscreen-signature-btn" class="text-sm text-blue-600 hover:underline">Firmar en Pantalla Completa</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="flex justify-center mt-8">
+                <button type="submit" class="w-full px-6 py-3 bg-blue-600 text-white font-bold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-150 ease-in-out">
+                    Guardar Anotación
+                </button>
+            </div>
+        </form>
+
+        <!-- Sección de Notas Guardadas -->
+        <div class="mt-8 pt-6 border-t border-gray-200">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Notas Guardadas</h2>
+            <div id="saved-reports-container" class="space-y-4">
+                <!-- Los reportes se cargarán aquí dinámicamente -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Modales para mensajes y firma en pantalla completa -->
+    <div id="message-modal" class="modal fixed inset-0 flex items-center justify-center p-4 hidden">
+        <div class="modal-content w-full max-w-sm rounded-lg shadow-xl p-6 text-center">
+            <h3 id="modal-title" class="text-xl font-bold mb-2"></h3>
+            <p id="modal-message" class="text-gray-700 mb-4"></p>
+            <button id="modal-close-button" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-150 ease-in-out">Cerrar</button>
+        </div>
+    </div>
+    
+    <div id="fullscreen-modal" class="modal fixed inset-0 flex flex-col items-center justify-center p-2 hidden">
+        <div class="w-full h-full bg-white rounded-lg shadow-xl p-4 flex flex-col">
+            <h3 class="text-xl font-bold text-center mb-2">Firma en Pantalla Completa</h3>
+            <canvas id="fullscreen-signature-pad" class="flex-1 w-full bg-gray-50 rounded-lg"></canvas>
+            <div class="mt-4 flex justify-between">
+                <button id="fullscreen-clear-btn" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition duration-150 ease-in-out">Limpiar</button>
+                <button id="fullscreen-save-btn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-150 ease-in-out">Guardar y Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Librerías de JavaScript para generar PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+    <script>
+        // Aseguramos que el script se ejecute después de que el DOM esté completamente cargado
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // Obtención de referencias a los elementos del DOM
+            const eseBtn = document.getElementById('ese-btn');
+            const alcaldiaBtn = document.getElementById('alcaldia-btn');
+            const reportForm = document.getElementById('report-form');
+            const notaNumeroInput = document.getElementById('nota-numero');
+            const fechaInput = document.getElementById('fecha');
+            const horaInicioInput = document.getElementById('hora-inicio');
+            const realizadoPorInput = document.getElementById('realizado-por');
+            const areaActividadInput = document.getElementById('area-actividad');
+            const actividadRealizadaTextarea = document.getElementById('actividad-realizada');
+            const observacionTextarea = document.getElementById('observacion');
+            const conclusionTextarea = document.getElementById('conclusion');
+            const participantesInput = document.getElementById('participantes');
+            const nombreFirmaInput = document.getElementById('nombre-firma');
+            const fotosInput = document.getElementById('fotos');
+            const addPhotoBtns = document.querySelectorAll('.add-photo-btn');
+            const photoPreviews = [
+                document.getElementById('photo-preview-1'),
+                document.getElementById('photo-preview-2'),
+                document.getElementById('photo-preview-3')
+            ];
+            const photoPlaceholders = [
+                document.getElementById('photo-placeholder-1'),
+                document.getElementById('photo-placeholder-2'),
+                document.getElementById('photo-placeholder-3')
+            ];
+            const signaturePadCanvas = document.getElementById('signature-pad');
+            const clearSignatureButton = document.getElementById('clear-signature');
+            const fullscreenSignatureBtn = document.getElementById('fullscreen-signature-btn');
+            const savedReportsContainer = document.getElementById('saved-reports-container');
+
+            // Modales
+            const messageModal = document.getElementById('message-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalMessage = document.getElementById('modal-message');
+            const modalCloseButton = document.getElementById('modal-close-button');
+            const fullscreenModal = document.getElementById('fullscreen-modal');
+            const fullscreenSignaturePad = document.getElementById('fullscreen-signature-pad');
+            const fullscreenClearBtn = document.getElementById('fullscreen-clear-btn');
+            const fullscreenSaveBtn = document.getElementById('fullscreen-save-btn');
+
+            let currentEntidad = 'E.S.E. SaludYa de Yacuanquer';
+            const photosData = [];
+
+            // Manejo de la selección de entidad
+            eseBtn.addEventListener('click', () => {
+                eseBtn.classList.add('active');
+                alcaldiaBtn.classList.remove('active');
+                currentEntidad = eseBtn.dataset.entidad;
+            });
+            alcaldiaBtn.addEventListener('click', () => {
+                alcaldiaBtn.classList.add('active');
+                eseBtn.classList.remove('active');
+                currentEntidad = alcaldiaBtn.dataset.entidad;
+            });
+
+            // Variables de estado para el pad de firma principal
+            const signaturePadCtx = signaturePadCanvas.getContext('2d');
+            signaturePadCtx.lineWidth = 2;
+            signaturePadCtx.strokeStyle = '#000000';
+            let isDrawingMain = false;
+            let lastXMain = 0;
+            let lastYMain = 0;
+
+            // Variables de estado para el pad de firma en pantalla completa
+            const fullscreenCtx = fullscreenSignaturePad.getContext('2d');
+            fullscreenCtx.lineWidth = 2;
+            fullscreenCtx.strokeStyle = '#000000';
+            let isDrawingFullscreen = false;
+            let lastXFullscreen = 0;
+            let lastYFullscreen = 0;
+
+            // Función de dibujo reutilizable
+            function draw(e, canvas, ctx, lastX, lastY) {
+                const rect = canvas.getBoundingClientRect();
+                const x = (e.clientX || (e.touches && e.touches[0] && e.touches[0].clientX)) - rect.left;
+                const y = (e.clientY || (e.touches && e.touches[0] && e.touches[0].clientY)) - rect.top;
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                return [x, y];
+            }
+
+            // Eventos de firma para el canvas principal
+            signaturePadCanvas.addEventListener('mousedown', (e) => {
+                isDrawingMain = true;
+                const rect = signaturePadCanvas.getBoundingClientRect();
+                [lastXMain, lastYMain] = [(e.clientX || e.touches[0].clientX) - rect.left, (e.clientY || e.touches[0].clientY) - rect.top];
+            });
+            signaturePadCanvas.addEventListener('mousemove', (e) => {
+                if (!isDrawingMain) return;
+                [lastXMain, lastYMain] = draw(e, signaturePadCanvas, signaturePadCtx, lastXMain, lastYMain);
+            });
+            signaturePadCanvas.addEventListener('mouseup', () => isDrawingMain = false);
+            signaturePadCanvas.addEventListener('mouseout', () => isDrawingMain = false);
+            signaturePadCanvas.addEventListener('touchstart', (e) => {
+                isDrawingMain = true;
+                const rect = signaturePadCanvas.getBoundingClientRect();
+                [lastXMain, lastYMain] = [e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top];
+                e.preventDefault();
+            });
+            signaturePadCanvas.addEventListener('touchmove', (e) => {
+                if (!isDrawingMain) return;
+                [lastXMain, lastYMain] = draw(e, signaturePadCanvas, signaturePadCtx, lastXMain, lastYMain);
+            });
+            signaturePadCanvas.addEventListener('touchend', () => isDrawingMain = false);
+
+            // Limpiar la firma
+            clearSignatureButton.addEventListener('click', () => {
+                signaturePadCtx.clearRect(0, 0, signaturePadCanvas.width, signaturePadCanvas.height);
+            });
+
+            // Mostrar el modal de mensaje
+            function showMessage(title, message) {
+                modalTitle.textContent = title;
+                modalMessage.textContent = message;
+                messageModal.classList.remove('hidden');
+            }
+
+            // Ocultar el modal de mensaje
+            modalCloseButton.addEventListener('click', () => {
+                messageModal.classList.add('hidden');
+            });
+
+            // Manejo de la carga de fotos
+            addPhotoBtns.forEach((btn, index) => {
+                btn.addEventListener('click', () => {
+                    // Crea un input de archivo temporal para cada botón
+                    const tempInput = document.createElement('input');
+                    tempInput.type = 'file';
+                    tempInput.accept = 'image/*';
+                    tempInput.click();
+                    tempInput.addEventListener('change', (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                photosData[index] = e.target.result;
+                                photoPreviews[index].src = e.target.result;
+                                photoPreviews[index].classList.remove('hidden');
+                                photoPlaceholders[index].classList.add('hidden');
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                });
+            });
+
+            // Manejo del envío del formulario (Guardar el reporte)
+            reportForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+
+                const report = {
+                    id: Date.now(), // ID único
+                    entidad: currentEntidad,
+                    notaNumero: notaNumeroInput.value,
+                    fecha: fechaInput.value,
+                    horaInicio: horaInicioInput.value,
+                    realizadoPor: realizadoPorInput.value,
+                    areaActividad: areaActividadInput.value,
+                    actividadRealizada: actividadRealizadaTextarea.value,
+                    observacion: observacionTextarea.value,
+                    conclusion: conclusionTextarea.value,
+                    participantes: participantesInput.value,
+                    nombreFirma: nombreFirmaInput.value,
+                    fotos: photosData,
+                    firma: signaturePadCanvas.toDataURL('image/png'),
+                };
+
+                saveReport(report);
+                showMessage('Anotación Guardada', 'La anotación ha sido guardada exitosamente en tu navegador.');
+                clearForm();
+            });
+
+            // Función para guardar el reporte en LocalStorage
+            function saveReport(report) {
+                const savedReports = JSON.parse(localStorage.getItem('reports') || '[]');
+                savedReports.push(report);
+                localStorage.setItem('reports', JSON.stringify(savedReports));
+                renderReports();
+            }
+
+            // Función para renderizar los reportes guardados
+            function renderReports() {
+                const savedReports = JSON.parse(localStorage.getItem('reports') || '[]');
+                savedReportsContainer.innerHTML = '';
+                if (savedReports.length === 0) {
+                    savedReportsContainer.innerHTML = '<p class="text-center text-gray-500">No hay anotaciones guardadas aún.</p>';
+                    return;
+                }
+
+                savedReports.forEach(report => {
+                    const reportElement = document.createElement('div');
+                    reportElement.classList.add('p-4', 'bg-gray-100', 'rounded-lg', 'shadow-sm', 'relative');
+                    reportElement.innerHTML = `
+                        <h3 class="text-lg font-bold text-gray-800 mb-2">${report.entidad} - Nota N° ${report.notaNumero || 'N/A'}</h3>
+                        <p class="text-gray-600 text-sm">Fecha: ${new Date(report.fecha + 'T' + report.horaInicio).toLocaleString()}</p>
+                        <p class="text-gray-700 mt-2">${report.actividadRealizada}</p>
+                        <!-- Sección de botones de acción para cada reporte -->
+                        <div class="mt-4 flex flex-col sm:flex-row gap-2">
+                            <button class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-150 ease-in-out font-bold export-pdf-btn" data-id="${report.id}">
+                                Exportar a PDF
+                            </button>
+                            <button class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition duration-150 ease-in-out font-bold export-photos-btn" data-id="${report.id}">
+                                Exportar Fotos
+                            </button>
+                            <button class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition duration-150 ease-in-out font-bold delete-report-btn" data-id="${report.id}">
+                                Eliminar
+                            </button>
+                        </div>
+                    `;
+                    savedReportsContainer.appendChild(reportElement);
+                });
+
+                // Añadir event listeners a los nuevos botones
+                document.querySelectorAll('.export-pdf-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const reportId = e.target.dataset.id;
+                        const report = savedReports.find(r => r.id == reportId);
+                        if (report) {
+                            generatePDF(report);
+                        }
+                    });
+                });
+
+                document.querySelectorAll('.export-photos-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const reportId = e.target.dataset.id;
+                        const report = savedReports.find(r => r.id == reportId);
+                        if (report) {
+                            exportPhotos(report);
+                        }
+                    });
+                });
+
+                document.querySelectorAll('.delete-report-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const reportId = e.target.dataset.id;
+                        // Usamos un modal en lugar de confirm()
+                        showMessage('Confirmación', '¿Estás seguro de que quieres eliminar esta anotación?');
+                        modalCloseButton.onclick = () => {
+                            deleteReport(reportId);
+                            messageModal.classList.add('hidden');
+                        };
+                    });
+                });
+            }
+
+            // Función para eliminar un reporte
+            function deleteReport(id) {
+                let savedReports = JSON.parse(localStorage.getItem('reports') || '[]');
+                savedReports = savedReports.filter(report => report.id != id);
+                localStorage.setItem('reports', JSON.stringify(savedReports));
+                renderReports();
+                showMessage('Anotación Eliminada', 'La anotación ha sido eliminada permanentemente.');
+            }
+
+            // Función para limpiar el formulario después de guardar
+            function clearForm() {
+                reportForm.reset();
+                signaturePadCtx.clearRect(0, 0, signaturePadCanvas.width, signaturePadCanvas.height);
+                photosData.length = 0;
+                photoPreviews.forEach(img => img.classList.add('hidden'));
+                photoPlaceholders.forEach(span => span.classList.remove('hidden'));
+                document.querySelector('.pill-button').classList.add('active');
+                document.querySelector('.pill-button:not(.active)').classList.remove('active');
+                currentEntidad = 'E.S.E. SaludYa de Yacuanquer';
+            }
+
+            // Función para generar y descargar el PDF
+            async function generatePDF(report) {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                let yPosition = 15;
+                const margin = 20;
+
+                // Título y logo
+                doc.setFontSize(22);
+                doc.text("Acta de Mantenimiento", 105, yPosition, null, null, "center");
+                yPosition += 15;
+
+                // Información del reporte
+                doc.setFontSize(12);
+                doc.text(`Entidad: ${report.entidad}`, margin, yPosition);
+                yPosition += 7;
+                doc.text(`Número de Nota: ${report.notaNumero || 'N/A'}`, margin, yPosition);
+                yPosition += 7;
+                doc.text(`Fecha: ${report.fecha}`, margin, yPosition);
+                yPosition += 7;
+                doc.text(`Hora de Inicio: ${report.horaInicio || 'N/A'}`, margin, yPosition);
+                yPosition += 7;
+                doc.text(`Realizado por: ${report.realizadoPor || 'N/A'}`, margin, yPosition);
+                yPosition += 7;
+                doc.text(`Área: ${report.areaActividad || 'N/A'}`, margin, yPosition);
+                yPosition += 15;
+
+                // Actividad Realizada
+                doc.setFontSize(14);
+                doc.text("Actividad Realizada:", margin, yPosition);
+                yPosition += 5;
+                doc.setFontSize(12);
+                const splitActividad = doc.splitTextToSize(report.actividadRealizada || 'N/A', 170);
+                doc.text(splitActividad, margin, yPosition);
+                yPosition += splitActividad.length * 5 + 10;
+
+                // Observación
+                doc.setFontSize(14);
+                doc.text("Observación:", margin, yPosition);
+                yPosition += 5;
+                doc.setFontSize(12);
+                const splitObservacion = doc.splitTextToSize(report.observacion || 'N/A', 170);
+                doc.text(splitObservacion, margin, yPosition);
+                yPosition += splitObservacion.length * 5 + 10;
+
+                // Conclusión
+                doc.setFontSize(14);
+                doc.text("Conclusión:", margin, yPosition);
+                yPosition += 5;
+                doc.setFontSize(12);
+                const splitConclusion = doc.splitTextToSize(report.conclusion || 'N/A', 170);
+                doc.text(splitConclusion, margin, yPosition);
+                yPosition += splitConclusion.length * 5 + 10;
+                
+                // Participantes
+                doc.setFontSize(14);
+                doc.text("Participantes:", margin, yPosition);
+                yPosition += 5;
+                doc.setFontSize(12);
+                doc.text(report.participantes || 'N/A', margin, yPosition);
+                yPosition += 10;
+
+                // Fotos de evidencia
+                if (report.fotos && report.fotos.length > 0) {
+                    doc.setFontSize(14);
+                    doc.text("Fotos de Evidencia:", margin, yPosition);
+                    yPosition += 5;
+                    for (const foto of report.fotos) {
+                        if (foto) {
+                            try {
+                                const imgData = foto;
+                                const img = new Image();
+                                img.src = imgData;
+                                await new Promise(resolve => img.onload = resolve);
+                                const imgWidth = 100;
+                                const imgHeight = (img.height * imgWidth) / img.width;
+
+                                if (yPosition + imgHeight + 10 > 280) { // Si la imagen no cabe, añadir nueva página
+                                    doc.addPage();
+                                    yPosition = 15;
+                                }
+                                doc.addImage(imgData, 'PNG', margin, yPosition, imgWidth, imgHeight);
+                                yPosition += imgHeight + 10;
+                            } catch (error) {
+                                console.error("Error al añadir imagen al PDF:", error);
+                            }
+                        }
+                    }
+                }
+
+                // Firma
+                if (report.firma) {
+                    if (yPosition + 50 > 280) {
+                        doc.addPage();
+                        yPosition = 15;
+                    }
+                    doc.setFontSize(14);
+                    doc.text(`Firma de ${report.nombreFirma || 'quien firma'}:`, margin, yPosition);
+                    yPosition += 5;
+                    const firmaImgData = report.firma;
+                    const firmaImg = new Image();
+                    firmaImg.src = firmaImgData;
+                    await new Promise(resolve => firmaImg.onload = resolve);
+                    const firmaWidth = 80;
+                    const firmaHeight = (firmaImg.height * firmaWidth) / firmaImg.width;
+                    doc.addImage(firmaImgData, 'PNG', margin, yPosition, firmaWidth, firmaHeight);
+                }
+
+                doc.save(`acta-mantenimiento-${report.id}.pdf`);
+                showMessage('Descarga Lista', 'El PDF del acta se ha descargado.');
+            }
+
+            // Función para exportar solo las fotos en un ZIP
+            async function exportPhotos(report) {
+                if (report.fotos.length === 0) {
+                    showMessage('Sin Fotos', 'Esta acta no tiene fotos para exportar.');
+                    return;
+                }
+
+                const zip = new JSZip();
+                report.fotos.forEach((foto, index) => {
+                    if (foto) {
+                        const base64data = foto.split(';base64,').pop();
+                        zip.file(`evidencia_${report.id}_foto${index + 1}.png`, base64data, { base64: true });
+                    }
+                });
+                
+                const blob = await zip.generateAsync({ type: "blob" });
+                saveAs(blob, `fotos_evidencia_${report.id}.zip`);
+                showMessage('Descarga Lista', 'Las fotos de evidencia se han descargado en un archivo ZIP.');
+            }
+
+            // Manejo del modal de firma en pantalla completa
+            fullscreenSignatureBtn.addEventListener('click', () => {
+                fullscreenModal.classList.remove('hidden');
+                setTimeout(() => {
+                    const rect = fullscreenSignaturePad.parentElement.getBoundingClientRect();
+                    fullscreenSignaturePad.width = rect.width;
+                    fullscreenSignaturePad.height = rect.height;
+                    fullscreenCtx.clearRect(0, 0, fullscreenSignaturePad.width, fullscreenSignaturePad.height);
+                    if (signaturePadCanvas.toDataURL() !== 'data:,') {
+                        const img = new Image();
+                        img.onload = () => {
+                            fullscreenCtx.drawImage(img, 0, 0, fullscreenSignaturePad.width, fullscreenSignaturePad.height);
+                        };
+                        img.src = signaturePadCanvas.toDataURL();
+                    }
+                }, 10);
+            });
+
+            fullscreenClearBtn.addEventListener('click', () => {
+                fullscreenCtx.clearRect(0, 0, fullscreenSignaturePad.width, fullscreenSignaturePad.height);
+            });
+
+            fullscreenSaveBtn.addEventListener('click', () => {
+                const imageData = fullscreenSignaturePad.toDataURL();
+                const mainCtx = signaturePadCanvas.getContext('2d');
+                mainCtx.clearRect(0, 0, signaturePadCanvas.width, signaturePadCanvas.height);
+                if (imageData !== 'data:,') {
+                    const img = new Image();
+                    img.onload = () => {
+                        mainCtx.drawImage(img, 0, 0, signaturePadCanvas.width, signaturePadCanvas.height);
+                    };
+                    img.src = imageData;
+                }
+                fullscreenModal.classList.add('hidden');
+            });
+            
+            // Eventos de firma para el canvas de pantalla completa
+            fullscreenSignaturePad.addEventListener('mousedown', (e) => {
+                isDrawingFullscreen = true;
+                const rect = fullscreenSignaturePad.getBoundingClientRect();
+                [lastXFullscreen, lastYFullscreen] = [e.clientX - rect.left, e.clientY - rect.top];
+            });
+            fullscreenSignaturePad.addEventListener('mousemove', (e) => {
+                if (!isDrawingFullscreen) return;
+                [lastXFullscreen, lastYFullscreen] = draw(e, fullscreenSignaturePad, fullscreenCtx, lastXFullscreen, lastYFullscreen);
+            });
+            fullscreenSignaturePad.addEventListener('mouseup', () => isDrawingFullscreen = false);
+            fullscreenSignaturePad.addEventListener('mouseout', () => isDrawingFullscreen = false);
+            fullscreenSignaturePad.addEventListener('touchstart', (e) => {
+                isDrawingFullscreen = true;
+                const rect = fullscreenSignaturePad.getBoundingClientRect();
+                [lastXFullscreen, lastYFullscreen] = [e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top];
+                e.preventDefault();
+            });
+            fullscreenSignaturePad.addEventListener('touchmove', (e) => {
+                if (!isDrawingFullscreen) return;
+                [lastXFullscreen, lastYFullscreen] = draw(e, fullscreenSignaturePad, fullscreenCtx, lastXFullscreen, lastYFullscreen);
+            });
+            fullscreenSignaturePad.addEventListener('touchend', () => isDrawingFullscreen = false);
+
+            // Cargar los reportes guardados al inicio de la aplicación
+            renderReports();
+
+        });
+    </script>
+</body>
+</html>
