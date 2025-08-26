@@ -254,6 +254,12 @@
                     <label for="acta-numero">Número de Acta:</label>
                     <input type="text" id="acta-numero" required>
                 </div>
+
+                <!-- Nuevo campo para quien realiza el acta -->
+                <div class="form-group">
+                    <label for="realizado-por">Realizado por:</label>
+                    <input type="text" id="realizado-por" required>
+                </div>
                 
                 <!-- Campos de fecha y hora -->
                 <div class="form-group">
@@ -284,7 +290,7 @@
                 <!-- Campos para fotos de evidencia, ahora como botones con miniaturas -->
                 <div class="form-group">
                     <label>Fotos de Evidencia:</label>
-                    <p style="font-size: 12px; color: #666; text-align: center;">Las fotos se adjuntarán solo al PDF de descarga y no se guardarán en el historial.</p>
+                    <p style="font-size: 12px; color: #666; text-align: center;">Las fotos se adjuntarán solo al PDF de descarga de esta sesión y no se guardarán en el historial.</p>
                     <div class="photo-input-container">
                         <div class="photo-wrapper">
                             <label for="foto-1" class="custom-file-upload">Tomar Foto 1</label>
@@ -466,6 +472,7 @@
             const nuevaActa = {
                 entidad: document.getElementById('entidad').value,
                 actaNumero: document.getElementById('acta-numero').value,
+                realizadoPor: document.getElementById('realizado-por').value,
                 fecha: document.getElementById('fecha').value,
                 hora: document.getElementById('hora').value,
                 personasPresentes: document.getElementById('personas-presentes').value,
@@ -491,6 +498,7 @@
             actaForm.reset();
             ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
             document.querySelectorAll('.thumbnail-preview').forEach(el => el.remove());
+            
             // Limpiar las fotos temporales
             for (const key in tempPhotos) {
                 delete tempPhotos[key];
@@ -509,6 +517,7 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('p', 'mm', 'a4');
             const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
             const margin = 15;
             let y = margin;
             const lineSpacing = 6;
@@ -535,23 +544,29 @@
                 doc.text(acta.entidad, pageWidth / 2, y, { align: 'center' });
                 y += lineSpacing * 2;
                 
-                // Número de acta y fecha
+                // Número de acta y persona que la realiza
                 doc.setFontSize(regularFontSize);
                 doc.setFont('helvetica', 'bold');
                 doc.text(`Número de Acta:`, margin, y);
                 doc.setFont('helvetica', 'normal');
                 doc.text(`${acta.actaNumero}`, margin + 40, y);
 
-                doc.setFont('helvetica', 'bold');
-                doc.text('Fecha:', pageWidth / 2, y);
-                doc.setFont('helvetica', 'normal');
-                doc.text(`${acta.fecha}`, pageWidth / 2 + 15, y);
                 y += lineSpacing;
+                doc.setFont('helvetica', 'bold');
+                doc.text(`Realizado por:`, margin, y);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`${acta.realizadoPor}`, margin + 40, y);
+
+                y += lineSpacing * 2;
+                doc.setFont('helvetica', 'bold');
+                doc.text('Fecha:', margin, y);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`${acta.fecha}`, margin + 15, y);
                 
                 doc.setFont('helvetica', 'bold');
-                doc.text(`Hora:`, margin, y);
+                doc.text(`Hora:`, pageWidth / 2, y);
                 doc.setFont('helvetica', 'normal');
-                doc.text(`${acta.hora}`, margin + 15, y);
+                doc.text(`${acta.hora}`, pageWidth / 2 + 15, y);
                 y += lineSpacing * 2;
                 
                 // Contenido del acta
@@ -592,12 +607,12 @@
                     doc.text('Fotos de Evidencia', pageWidth / 2, y, { align: 'center' });
                     y += lineSpacing * 2;
 
-                    Object.values(tempPhotos).forEach((foto, fotoIndex) => {
+                    Object.values(tempPhotos).forEach(foto => {
                         try {
                             const imgInfo = doc.getImageProperties(foto);
                             const imgWidth = pageWidth - margin * 2;
                             const imgHeight = (imgWidth / imgInfo.width) * imgInfo.height;
-                            if (y + imgHeight > doc.internal.pageSize.getHeight() - margin) {
+                            if (y + imgHeight > pageHeight - margin) {
                                 doc.addPage();
                                 y = margin;
                             }
