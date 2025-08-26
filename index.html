@@ -153,6 +153,15 @@
         .photo-input-container {
             display: flex;
             justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .photo-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
         }
 
         /* Estilos para el campo de entrada de archivo (foto) */
@@ -178,7 +187,34 @@
             background-color: var(--accent-color);
             transform: translateY(-2px);
         }
+
+        .thumbnail {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid var(--primary-color);
+        }
         
+        .message-box {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            background-color: #4CAF50;
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            display: none;
+            text-align: center;
+            font-weight: bold;
+        }
+        .message-box.error {
+            background-color: #f44336;
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -192,14 +228,12 @@
             .button {
                 width: 100%;
             }
-            .photo-input-container {
-                flex-direction: column;
-                gap: 10px;
-            }
         }
     </style>
 </head>
 <body>
+
+    <div class="message-box" id="message-box"></div>
 
     <div class="container">
         <!-- Sección para crear una nueva acta -->
@@ -247,21 +281,24 @@
                     <textarea id="observacion"></textarea>
                 </div>
 
-                <!-- Campos para fotos de evidencia, ahora como botones -->
+                <!-- Campos para fotos de evidencia, ahora como botones con miniaturas -->
                 <div class="form-group">
                     <label>Fotos de Evidencia:</label>
                     <div class="photo-input-container">
-                        <div>
+                        <div class="photo-wrapper">
                             <label for="foto-1" class="custom-file-upload">Tomar Foto 1</label>
                             <input type="file" id="foto-1" accept="image/*" capture="camera">
+                            <div id="thumbnail-1"></div>
                         </div>
-                        <div>
+                        <div class="photo-wrapper">
                             <label for="foto-2" class="custom-file-upload">Tomar Foto 2</label>
                             <input type="file" id="foto-2" accept="image/*" capture="camera">
+                            <div id="thumbnail-2"></div>
                         </div>
-                        <div>
+                        <div class="photo-wrapper">
                             <label for="foto-3" class="custom-file-upload">Tomar Foto 3</label>
                             <input type="file" id="foto-3" accept="image/*" capture="camera">
+                            <div id="thumbnail-3"></div>
                         </div>
                     </div>
                 </div>
@@ -311,6 +348,7 @@
         const actasListContainer = document.getElementById('actas-guardadas-list');
         const downloadAllPdfButton = document.getElementById('download-all-pdf');
         const downloadPhotosPdfButton = document.getElementById('download-photos-pdf');
+        const messageBox = document.getElementById('message-box');
         
         // Lógica para la firma con el canvas
         const signatureCanvas = document.getElementById('signature-pad');
@@ -365,6 +403,16 @@
             ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
         });
 
+        // Función para mostrar mensajes personalizados
+        function showMessage(message, isError = false) {
+            messageBox.textContent = message;
+            messageBox.style.display = 'block';
+            messageBox.className = isError ? 'message-box error' : 'message-box';
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+            }, 3000);
+        }
+
         // Función para leer un archivo de imagen como Data URL
         function readFileAsDataURL(file) {
             return new Promise((resolve, reject) => {
@@ -385,7 +433,7 @@
             } else {
                 downloadAllPdfButton.disabled = false;
                 downloadPhotosPdfButton.disabled = false;
-                actas.forEach((acta, index) => {
+                actas.forEach((acta) => {
                     const actaItem = document.createElement('div');
                     actaItem.className = 'acta-item';
                     actaItem.innerHTML = `
@@ -404,8 +452,10 @@
             e.preventDefault();
             
             // Validar que la firma no esté vacía
-            if (signatureCanvas.toDataURL() === 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAADICA' + signatureCanvas.toDataURL().substring(signatureCanvas.toDataURL().length - 150, signatureCanvas.toDataURL().length-10)) {
-                alert('Por favor, incluya una firma antes de guardar.');
+            const signatureData = signatureCanvas.toDataURL();
+            const emptySignatureData = signatureCanvas.toDataURL().length < 1500; // Heurística para un canvas vacío
+            if (emptySignatureData) {
+                showMessage('Por favor, incluya una firma antes de guardar.', true);
                 return;
             }
 
@@ -434,25 +484,26 @@
                 descripcionActividad: document.getElementById('descripcion-actividad').value,
                 observacion: document.getElementById('observacion').value,
                 nombreRecibe: document.getElementById('nombre-recibe').value,
-                firma: signatureCanvas.toDataURL(),
+                firma: signatureData,
                 fotos: fotos, // Guardar las fotos como Data URLs
             };
             
             actas.push(nuevaActa);
             localStorage.setItem('actas_mantenimiento', JSON.stringify(actas));
             
-            // Limpiar el formulario
+            // Limpiar el formulario y las miniaturas
             actaForm.reset();
             ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+            document.querySelectorAll('.thumbnail-preview').forEach(el => el.remove());
             
             renderActasList();
-            alert('¡Acta guardada exitosamente!');
+            showMessage('¡Acta guardada exitosamente!');
         });
         
         // Función para descargar todas las actas como un PDF
         downloadAllPdfButton.addEventListener('click', () => {
             if (actas.length === 0) {
-                alert('No hay actas para descargar.');
+                showMessage('No hay actas para descargar.', true);
                 return;
             }
             
@@ -530,6 +581,7 @@
                     doc.setFont('helvetica', 'bold');
                     doc.text('Fotos de Evidencia:', margin, y);
                     y += lineSpacing;
+                    
                     const fotoWidth = (pageWidth - margin * 2) / acta.fotos.length;
                     acta.fotos.forEach((foto, fotoIndex) => {
                         try {
@@ -555,13 +607,13 @@
             
             // Guardar el PDF
             doc.save('actas_mantenimiento.pdf');
-            alert('PDF generado exitosamente.');
+            showMessage('PDF generado exitosamente.');
         });
 
         // Función para descargar todas las fotos en un PDF separado
         downloadPhotosPdfButton.addEventListener('click', () => {
             if (actas.length === 0) {
-                alert('No hay actas para descargar.');
+                showMessage('No hay actas para descargar.', true);
                 return;
             }
 
@@ -612,13 +664,42 @@
             });
 
             if (firstPage) {
-                alert('No hay fotos en las actas guardadas para descargar.');
+                showMessage('No hay fotos en las actas guardadas para descargar.', true);
             } else {
                 doc.save('fotos_actas.pdf');
-                alert('PDF de fotos generado exitosamente.');
+                showMessage('PDF de fotos generado exitosamente.');
             }
         });
         
+        // Agregar eventos para mostrar miniaturas de fotos
+        const fotoInputs = [
+            document.getElementById('foto-1'),
+            document.getElementById('foto-2'),
+            document.getElementById('foto-3')
+        ];
+
+        fotoInputs.forEach(input => {
+            input.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                const thumbnailId = 'thumbnail-' + e.target.id.split('-')[1];
+                const thumbnailContainer = document.getElementById(thumbnailId);
+                
+                // Limpiar cualquier miniatura anterior
+                thumbnailContainer.innerHTML = '';
+                
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const img = document.createElement('img');
+                        img.src = event.target.result;
+                        img.className = 'thumbnail thumbnail-preview';
+                        thumbnailContainer.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+
         // Llamar a la función para renderizar la lista al cargar la página
         renderActasList();
 
