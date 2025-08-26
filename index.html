@@ -284,6 +284,7 @@
                 <!-- Campos para fotos de evidencia, ahora como botones con miniaturas -->
                 <div class="form-group">
                     <label>Fotos de Evidencia:</label>
+                    <p style="font-size: 12px; color: #666; text-align: center;">Las fotos se adjuntarán solo al PDF de descarga y no se guardarán en el historial.</p>
                     <div class="photo-input-container">
                         <div class="photo-wrapper">
                             <label for="foto-1" class="custom-file-upload">Tomar Foto 1</label>
@@ -340,6 +341,9 @@
     <script>
         // Lógica de la aplicación
         
+        // Objeto para guardar las fotos temporales en la sesión actual
+        const tempPhotos = {};
+        
         // Inicializar el arreglo de actas. Si hay datos en localStorage, los carga.
         const actas = JSON.parse(localStorage.getItem('actas_mantenimiento')) || [];
         
@@ -371,8 +375,8 @@
         function startDrawing(e) {
             e.preventDefault();
             drawing = true;
-            const x = e.offsetX || e.touches[0].clientX - signatureCanvas.getBoundingClientRect().left;
-            const y = e.offsetY || e.touches[0].clientY - signatureCanvas.getBoundingClientRect().top;
+            const x = e.offsetX || (e.touches[0] ? e.touches[0].clientX - signatureCanvas.getBoundingClientRect().left : 0);
+            const y = e.offsetY || (e.touches[0] ? e.touches[0].clientY - signatureCanvas.getBoundingClientRect().top : 0);
             ctx.beginPath();
             ctx.moveTo(x, y);
         }
@@ -380,8 +384,8 @@
         function draw(e) {
             e.preventDefault();
             if (!drawing) return;
-            const x = e.offsetX || e.touches[0].clientX - signatureCanvas.getBoundingClientRect().left;
-            const y = e.offsetY || e.touches[0].clientY - signatureCanvas.getBoundingClientRect().top;
+            const x = e.offsetX || (e.touches[0] ? e.touches[0].clientX - signatureCanvas.getBoundingClientRect().left : 0);
+            const y = e.offsetY || (e.touches[0] ? e.touches[0].clientY - signatureCanvas.getBoundingClientRect().top : 0);
             ctx.lineTo(x, y);
             ctx.stroke();
         }
@@ -448,7 +452,7 @@
         }
         
         // Función para guardar una nueva acta
-        actaForm.addEventListener('submit', async (e) => {
+        actaForm.addEventListener('submit', (e) => {
             e.preventDefault();
             
             // Validar que la firma no esté vacía
@@ -457,22 +461,6 @@
             if (emptySignatureData) {
                 showMessage('Por favor, incluya una firma antes de guardar.', true);
                 return;
-            }
-
-            // Obtener las fotos y convertirlas a Data URLs
-            const fotos = [];
-            const foto1Input = document.getElementById('foto-1');
-            const foto2Input = document.getElementById('foto-2');
-            const foto3Input = document.getElementById('foto-3');
-
-            if (foto1Input.files.length > 0) {
-                fotos.push(await readFileAsDataURL(foto1Input.files[0]));
-            }
-            if (foto2Input.files.length > 0) {
-                fotos.push(await readFileAsDataURL(foto2Input.files[0]));
-            }
-            if (foto3Input.files.length > 0) {
-                fotos.push(await readFileAsDataURL(foto3Input.files[0]));
             }
 
             const nuevaActa = {
@@ -485,19 +473,30 @@
                 observacion: document.getElementById('observacion').value,
                 nombreRecibe: document.getElementById('nombre-recibe').value,
                 firma: signatureData,
-                fotos: fotos, // Guardar las fotos como Data URLs
+                // Las fotos ya no se guardan en el acta para evitar problemas de almacenamiento
             };
             
             actas.push(nuevaActa);
-            localStorage.setItem('actas_mantenimiento', JSON.stringify(actas));
             
-            // Limpiar el formulario y las miniaturas
+            // Guardar el acta en el almacenamiento local
+            try {
+                localStorage.setItem('actas_mantenimiento', JSON.stringify(actas));
+                showMessage('¡Acta guardada exitosamente!');
+            } catch (error) {
+                console.error("Error al guardar en localStorage:", error);
+                showMessage('Error al guardar el acta. Intente de nuevo.', true);
+            }
+            
+            // Limpiar el formulario y las miniaturas después de guardar
             actaForm.reset();
             ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
             document.querySelectorAll('.thumbnail-preview').forEach(el => el.remove());
+            // Limpiar las fotos temporales
+            for (const key in tempPhotos) {
+                delete tempPhotos[key];
+            }
             
             renderActasList();
-            showMessage('¡Acta guardada exitosamente!');
         });
         
         // Función para descargar todas las actas como un PDF
@@ -574,26 +573,6 @@
                     y += doc.getLineHeight() * textLines.length;
                     y += lineSpacing;
                 });
-
-                // Fotos de evidencia
-                if (acta.fotos && acta.fotos.length > 0) {
-                    y += lineSpacing * 2;
-                    doc.setFont('helvetica', 'bold');
-                    doc.text('Fotos de Evidencia:', margin, y);
-                    y += lineSpacing;
-                    
-                    const fotoWidth = (pageWidth - margin * 2) / acta.fotos.length;
-                    acta.fotos.forEach((foto, fotoIndex) => {
-                        try {
-                            const imgInfo = doc.getImageProperties(foto);
-                            const imgHeight = (fotoWidth / imgInfo.width) * imgInfo.height;
-                            doc.addImage(foto, 'JPEG', margin + fotoIndex * fotoWidth, y, fotoWidth - 5, imgHeight);
-                        } catch (e) {
-                            console.error('Error adding image to PDF:', e);
-                        }
-                    });
-                    y += 50; // Aumentar 'y' para dejar espacio para las fotos
-                }
                 
                 // Firma
                 y += lineSpacing * 2;
@@ -603,6 +582,32 @@
 
                 const imgData = acta.firma;
                 doc.addImage(imgData, 'PNG', margin, y, 80, 40);
+                
+                // Agregar fotos de la sesión actual solo si existen
+                if (Object.keys(tempPhotos).length > 0) {
+                    doc.addPage();
+                    y = margin;
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(titleFontSize);
+                    doc.text('Fotos de Evidencia', pageWidth / 2, y, { align: 'center' });
+                    y += lineSpacing * 2;
+
+                    Object.values(tempPhotos).forEach((foto, fotoIndex) => {
+                        try {
+                            const imgInfo = doc.getImageProperties(foto);
+                            const imgWidth = pageWidth - margin * 2;
+                            const imgHeight = (imgWidth / imgInfo.width) * imgInfo.height;
+                            if (y + imgHeight > doc.internal.pageSize.getHeight() - margin) {
+                                doc.addPage();
+                                y = margin;
+                            }
+                            doc.addImage(foto, 'JPEG', margin, y, imgWidth, imgHeight);
+                            y += imgHeight + 10;
+                        } catch (e) {
+                            console.error('Error adding image to PDF:', e);
+                        }
+                    });
+                }
             });
             
             // Guardar el PDF
@@ -612,8 +617,8 @@
 
         // Función para descargar todas las fotos en un PDF separado
         downloadPhotosPdfButton.addEventListener('click', () => {
-            if (actas.length === 0) {
-                showMessage('No hay actas para descargar.', true);
+            if (Object.keys(tempPhotos).length === 0) {
+                showMessage('No hay fotos en las actas de esta sesión para descargar.', true);
                 return;
             }
 
@@ -626,52 +631,32 @@
             const titleFontSize = 18;
             const subTitleFontSize = 14;
 
-            let firstPage = true;
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(titleFontSize);
+            doc.text(`Fotos de Evidencia`, pageWidth / 2, y, { align: 'center' });
+            y += 10;
 
-            actas.forEach((acta) => {
-                if (acta.fotos && acta.fotos.length > 0) {
-                    if (!firstPage) {
+            Object.values(tempPhotos).forEach(foto => {
+                try {
+                    const imgInfo = doc.getImageProperties(foto);
+                    const imgWidth = pageWidth - (margin * 2);
+                    const imgHeight = (imgWidth / imgInfo.width) * imgInfo.height;
+                    if (y + imgHeight > pageHeight - margin) {
                         doc.addPage();
                         y = margin;
                     }
-                    firstPage = false;
-
-                    // Título de la sección de fotos para esta acta
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(titleFontSize);
-                    doc.text(`Fotos para Acta N° ${acta.actaNumero}`, pageWidth / 2, y, { align: 'center' });
-                    y += 10;
-                    doc.setFontSize(subTitleFontSize);
-                    doc.text(acta.entidad, pageWidth / 2, y, { align: 'center' });
-                    y += 15;
-
-                    const fotoWidth = pageWidth - (margin * 2);
-                    acta.fotos.forEach(foto => {
-                        try {
-                            const imgInfo = doc.getImageProperties(foto);
-                            const imgHeight = (fotoWidth / imgInfo.width) * imgInfo.height;
-                            if (y + imgHeight > pageHeight - margin) {
-                                doc.addPage();
-                                y = margin;
-                            }
-                            doc.addImage(foto, 'JPEG', margin, y, fotoWidth, imgHeight);
-                            y += imgHeight + 5; // Espacio entre fotos
-                        } catch (e) {
-                            console.error('Error adding photo to photos PDF:', e);
-                        }
-                    });
+                    doc.addImage(foto, 'JPEG', margin, y, imgWidth, imgHeight);
+                    y += imgHeight + 5; // Espacio entre fotos
+                } catch (e) {
+                    console.error('Error adding photo to photos PDF:', e);
                 }
             });
 
-            if (firstPage) {
-                showMessage('No hay fotos en las actas guardadas para descargar.', true);
-            } else {
-                doc.save('fotos_actas.pdf');
-                showMessage('PDF de fotos generado exitosamente.');
-            }
+            doc.save('fotos_actas.pdf');
+            showMessage('PDF de fotos generado exitosamente.');
         });
         
-        // Agregar eventos para mostrar miniaturas de fotos
+        // Agregar eventos para mostrar miniaturas de fotos y guardarlas temporalmente
         const fotoInputs = [
             document.getElementById('foto-1'),
             document.getElementById('foto-2'),
@@ -679,7 +664,7 @@
         ];
 
         fotoInputs.forEach(input => {
-            input.addEventListener('change', (e) => {
+            input.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 const thumbnailId = 'thumbnail-' + e.target.id.split('-')[1];
                 const thumbnailContainer = document.getElementById(thumbnailId);
@@ -688,14 +673,13 @@
                 thumbnailContainer.innerHTML = '';
                 
                 if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        const img = document.createElement('img');
-                        img.src = event.target.result;
-                        img.className = 'thumbnail thumbnail-preview';
-                        thumbnailContainer.appendChild(img);
-                    };
-                    reader.readAsDataURL(file);
+                    const dataUrl = await readFileAsDataURL(file);
+                    tempPhotos[e.target.id] = dataUrl; // Guardar la foto temporalmente
+                    
+                    const img = document.createElement('img');
+                    img.src = dataUrl;
+                    img.className = 'thumbnail thumbnail-preview';
+                    thumbnailContainer.appendChild(img);
                 }
             });
         });
