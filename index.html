@@ -17,6 +17,7 @@
             --border-radius: 12px;
             --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             --danger-color: #e74c3c;
+            --edit-color: #2ecc71; /* Color para el botón de editar */
         }
 
         body {
@@ -123,6 +124,11 @@
             color: white;
         }
         
+        .button.edit {
+            background-color: var(--edit-color);
+            color: white;
+        }
+        
         .button:hover {
             transform: translateY(-2px);
         }
@@ -137,6 +143,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap; /* Permite que los elementos se envuelvan en pantallas pequeñas */
         }
 
         .acta-item:last-child {
@@ -154,6 +161,12 @@
             margin: 4px 0 0;
             font-size: 14px;
             color: #666;
+        }
+
+        .acta-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
         }
 
         .message-box {
@@ -235,6 +248,13 @@
             .button {
                 width: 100%;
             }
+            .acta-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .acta-buttons {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -257,7 +277,7 @@
     <div class="container">
         <!-- Sección para crear una nueva acta -->
         <div class="card">
-            <h1>Crear Nueva Acta de Mantenimiento</h1>
+            <h1 id="form-title">Crear Nueva Acta de Mantenimiento</h1>
             <form id="acta-form">
                 <!-- Selector de entidad -->
                 <div class="form-group">
@@ -322,7 +342,8 @@
 
                 <div class="button-group">
                     <button type="button" class="button secondary" id="clear-signature">Borrar Firma</button>
-                    <button type="submit" class="button primary">Guardar Acta</button>
+                    <button type="button" class="button secondary" id="clear-form-btn">Limpiar Formulario</button>
+                    <button type="submit" class="button primary" id="submit-button">Guardar Acta</button>
                 </div>
             </form>
         </div>
@@ -349,17 +370,23 @@
         const actas = JSON.parse(localStorage.getItem('actas_mantenimiento')) || [];
         
         // Elementos del DOM
+        const formTitle = document.getElementById('form-title');
         const actaForm = document.getElementById('acta-form');
+        const submitButton = document.getElementById('submit-button');
         const actasListContainer = document.getElementById('actas-guardadas-list');
         const downloadAllPdfButton = document.getElementById('download-all-pdf');
         const messageBox = document.getElementById('message-box');
+        const clearFormButton = document.getElementById('clear-form-btn');
         
-        // Elementos del modal
+        // Elementos del modal de eliminación
         const deleteModal = document.getElementById('delete-modal');
         const deletePasswordInput = document.getElementById('delete-password');
         const confirmDeleteButton = document.getElementById('confirm-delete');
         const cancelDeleteButton = document.getElementById('cancel-delete');
         let actaIndexToDelete = null;
+        
+        // Estado de la aplicación: si se está editando un acta o se está creando una nueva
+        let currentEditingIndex = null;
 
         // Lógica para la firma con el canvas
         const signatureCanvas = document.getElementById('signature-pad');
@@ -410,6 +437,7 @@
         signatureCanvas.addEventListener('touchmove', draw);
         signatureCanvas.addEventListener('touchend', stopDrawing);
 
+        // La firma solo se borra con el clic en este botón
         clearSignatureButton.addEventListener('click', () => {
             ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
         });
@@ -423,6 +451,17 @@
                 messageBox.style.display = 'none';
             }, 3000);
         }
+        
+        // Función para limpiar el formulario y resetear el estado de edición
+        function resetForm() {
+            actaForm.reset();
+            ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+            formTitle.textContent = 'Crear Nueva Acta de Mantenimiento';
+            submitButton.textContent = 'Guardar Acta';
+            currentEditingIndex = null;
+        }
+        
+        clearFormButton.addEventListener('click', resetForm);
 
         // Función para renderizar la lista de actas en el DOM
         function renderActasList() {
@@ -440,21 +479,59 @@
                             <h4>Acta N° ${acta.actaNumero}</h4>
                             <p>${acta.entidad} - ${acta.fecha}</p>
                         </div>
-                        <button class="button danger delete-btn" data-index="${index}">Eliminar</button>
+                        <div class="acta-buttons">
+                            <button class="button edit edit-btn" data-index="${index}">Editar</button>
+                            <button class="button danger delete-btn" data-index="${index}">Eliminar</button>
+                        </div>
                     `;
                     actasListContainer.appendChild(actaItem);
                 });
             }
         }
 
-        // Delegación de eventos para los botones de eliminar
+        // Delegación de eventos para los botones de editar y eliminar
         actasListContainer.addEventListener('click', (e) => {
             if (e.target.classList.contains('delete-btn')) {
                 actaIndexToDelete = e.target.getAttribute('data-index');
                 deleteModal.style.display = 'flex';
                 deletePasswordInput.focus();
+            } else if (e.target.classList.contains('edit-btn')) {
+                const index = e.target.getAttribute('data-index');
+                loadActaForEditing(index);
             }
         });
+
+        // Función para cargar los datos de una acta en el formulario para su edición
+        function loadActaForEditing(index) {
+            currentEditingIndex = index;
+            const acta = actas[index];
+
+            document.getElementById('entidad').value = acta.entidad;
+            document.getElementById('acta-numero').value = acta.actaNumero;
+            document.getElementById('realizado-por').value = acta.realizadoPor;
+            document.getElementById('fecha').value = acta.fecha;
+            document.getElementById('hora').value = acta.hora;
+            document.getElementById('personas-presentes').value = acta.personasPresentes;
+            document.getElementById('descripcion-actividad').value = acta.descripcionActividad;
+            document.getElementById('observacion').value = acta.observacion;
+            document.getElementById('nombre-recibe').value = acta.nombreRecibe;
+            
+            // Cargar la firma si existe
+            if (acta.firma) {
+                const img = new Image();
+                img.onload = () => {
+                    ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+                    ctx.drawImage(img, 0, 0, signatureCanvas.width, signatureCanvas.height);
+                };
+                img.src = acta.firma;
+            } else {
+                ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+            }
+
+            formTitle.textContent = 'Editar Acta de Mantenimiento';
+            submitButton.textContent = 'Actualizar Acta';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
 
         // Lógica del modal de eliminación
         confirmDeleteButton.addEventListener('click', () => {
@@ -481,7 +558,7 @@
             actaIndexToDelete = null;
         });
         
-        // Función para guardar una nueva acta
+        // Función para guardar o actualizar una acta
         actaForm.addEventListener('submit', (e) => {
             e.preventDefault();
             
@@ -493,7 +570,7 @@
                 return;
             }
 
-            const nuevaActa = {
+            const actaData = {
                 entidad: document.getElementById('entidad').value,
                 actaNumero: document.getElementById('acta-numero').value,
                 realizadoPor: document.getElementById('realizado-por').value,
@@ -506,21 +583,25 @@
                 firma: signatureData
             };
             
-            actas.push(nuevaActa);
+            if (currentEditingIndex !== null) {
+                // Actualizar acta existente
+                actas[currentEditingIndex] = actaData;
+                showMessage('¡Acta actualizada exitosamente!');
+            } else {
+                // Guardar nueva acta
+                actas.push(actaData);
+                showMessage('¡Acta guardada exitosamente!');
+            }
             
-            // Guardar el acta en el almacenamiento local
+            // Guardar el arreglo completo en el almacenamiento local
             try {
                 localStorage.setItem('actas_mantenimiento', JSON.stringify(actas));
-                showMessage('¡Acta guardada exitosamente!');
             } catch (error) {
                 console.error("Error al guardar en localStorage:", error);
                 showMessage('Error al guardar el acta. Intente de nuevo.', true);
             }
             
-            // Limpiar el formulario y el canvas de firma después de guardar
-            actaForm.reset();
-            ctx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
-            
+            resetForm();
             renderActasList();
         });
         
